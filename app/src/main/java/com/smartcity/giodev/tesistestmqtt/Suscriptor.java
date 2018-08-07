@@ -32,13 +32,13 @@ import java.util.List;
 public class Suscriptor{
     private final String TAG="GIODEBUG_Sub";
     private Context ctx;
-    private MqttAndroidClient mqttAndroidClient;
+    private static MqttAndroidClient mqttAndroidClient;
     private String ip;
     FeedReaderDBHelper mDbHelper;
     String TABLE_NAME;
     TextView norecibidos;
-    int contador;
-
+    static double lastvalue;
+    //static String lastvalue;
 
     public Suscriptor(Context ctx, String ip,String TABLE_NAME,
                       //MqttDefaultFilePersistence filePersistence,
@@ -49,7 +49,12 @@ public class Suscriptor{
         mDbHelper = new FeedReaderDBHelper(ctx,TABLE_NAME);
         //this.filePersistence = filePersistence;
         this.norecibidos = norecibidos;
-        contador = 0;
+        lastvalue = -0.9f;
+
+        int random= (int) (Math.random()*123456);
+        mqttAndroidClient
+                = new MqttAndroidClient(ctx,  "tcp://"+
+                ip+":1883", "GioMovil"+random);
 
         /*TrueTimeRx.build()
                 .initializeRx("time.google.com")
@@ -63,104 +68,101 @@ public class Suscriptor{
     }
 
     public void restart(){
-        contador = 0;
+        lastvalue = -0.9f;
         norecibidos.setText("");
     }
 
     public void creoClienteMQTT(){
-        int random= (int) (Math.random()*123456);
-        mqttAndroidClient
-                = new MqttAndroidClient(ctx,  "tcp://"+
-                ip+":1883", "GioMovil"+random);
+        if(! mqttAndroidClient.isConnected()) {
 
-        MqttConnectOptions options = new MqttConnectOptions();
-        options.setMqttVersion(MqttConnectOptions.MQTT_VERSION_3_1_1);
-        options.setUserName(Utils.getUserMqtt());
-        options.setPassword(Utils.getPassMqtt().toCharArray());
-        options.setCleanSession(false);
+            MqttConnectOptions options = new MqttConnectOptions();
+            options.setMqttVersion(MqttConnectOptions.MQTT_VERSION_3_1_1);
+            options.setUserName(Utils.getUserMqtt());
+            options.setPassword(Utils.getPassMqtt().toCharArray());
+            options.setCleanSession(false);
 
-        options.setAutomaticReconnect(true);
-        //options.setKeepAliveInterval(20000);
-        mqttAndroidClient.setCallback(new MqttCallback() {
-            @Override
-            public void connectionLost(Throwable cause) {
-
-            }
-
-            @Override
-            public void messageArrived(String topic, MqttMessage message) throws Exception {
-                Log.d("GIODEBUG_MQTT_SA","Llego del topic " + topic + ": " + new String(message.getPayload()));
-                // Store!!
-                //Date trueTime = java.sql.Date.
-                DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
-                Date date = new Date(System.currentTimeMillis());
-                Insert(TABLE_NAME,new String(message.getPayload()),date);
-                //Read(TABLE_NAME);
-            }
-
-            @Override
-            public void deliveryComplete(IMqttDeliveryToken token) {
-
-            }
-        });
-        try {
-            IMqttToken token = mqttAndroidClient.connect(options);
-            token.setActionCallback(new IMqttActionListener() {
+            options.setAutomaticReconnect(true);
+            //options.setKeepAliveInterval(20000);
+            mqttAndroidClient.setCallback(new MqttCallback() {
                 @Override
-                public void onSuccess(IMqttToken asyncActionToken) {
-                    // We are connected
-                    Log.d("GIODEBUG_MQTT_SA", "IMqttActionListener_onSuccess_"+Utils.getTopicMqtt()+" on");
+                public void connectionLost(Throwable cause) {
 
-                    Toast.makeText(ctx,"CONECTADO!",Toast.LENGTH_LONG).show();
-                    try {
-                        mqttAndroidClient.subscribe(Utils.getTopicMqtt(), 0);
-                    } catch (MqttException e) {
-                        e.printStackTrace();
-                    }
                 }
 
                 @Override
-                public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                    Log.d("GIODEBUG_MQTT_SA", "IMqttActionListener_onFailure_"+asyncActionToken.toString());
+                public void messageArrived(String topic, MqttMessage message) throws Exception {
+                    Log.d(TAG, "Llego del topic " + topic + ": " + new String(message.getPayload()));
+                    Date date = new Date(System.currentTimeMillis());
+                    Insert(TABLE_NAME, new String(message.getPayload()), date);
+                    //Read(TABLE_NAME);
                 }
 
+                @Override
+                public void deliveryComplete(IMqttDeliveryToken token) {
+
+                }
             });
-        } catch (MqttException e) {
-            e.printStackTrace();
+            try {
+                IMqttToken token = mqttAndroidClient.connect(options);
+                token.setActionCallback(new IMqttActionListener() {
+                    @Override
+                    public void onSuccess(IMqttToken asyncActionToken) {
+                        // We are connected
+                        Log.d(TAG, "IMqttActionListener_onSuccess_" + Utils.getTopicMqtt() + " on");
+
+                        Toast.makeText(ctx, "CONECTADO!", Toast.LENGTH_LONG).show();
+                        try {
+                            mqttAndroidClient.subscribe(Utils.getTopicMqtt(), 0);
+                        } catch (MqttException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
+                        Log.d("GIODEBUG_MQTT_SA", "IMqttActionListener_onFailure_" + asyncActionToken.toString());
+                    }
+
+                });
+            } catch (MqttException e) {
+                e.printStackTrace();
+            }
+            Log.d(TAG, "Suscribiendo");
+        }else{
+
+            Toast.makeText(ctx, "Ya estas suscrito", Toast.LENGTH_LONG).show();
+            Log.d(TAG, "Ya estas suscrito");
         }
-        Log.d("GIODEBUG_MQTT_SA","Suscribiendo");
     }
 
     public void Insert(String TABLE_NAME, String mnsj, Date ntp){
         // Gets the data repository in write mode
         SQLiteDatabase db = mDbHelper.getWritableDatabase();
 
-        SimpleDateFormat sdf = new SimpleDateFormat("yyMMdd_HH:mm:ss.SSS");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
         String currentDateandTime = sdf.format(new Date());
         String ntpTime = sdf.format(ntp);
 // Create a new map of values, where column names are the keys
         ContentValues values = new ContentValues();
         values.put(FeedReaderContract.FeedEntry.COLUMN_NAME_NTP, String.valueOf(ntpTime));
-        values.put(FeedReaderContract.FeedEntry.COLUMN_NAME_TITLE, String.valueOf(currentDateandTime));
+        values.put(FeedReaderContract.FeedEntry.COLUMN_HORA_LLEGADA, String.valueOf(currentDateandTime));
         values.put(FeedReaderContract.FeedEntry.COLUMN_NAME_SUBTITLE,mnsj);
 
-// Insert the new row, returning the primary key value of the new row
-        long newRowId = db.insert(TABLE_NAME, null, values);
-        Log.d(TAG,TABLE_NAME+"_insert: "+newRowId+"_"+ntpTime);
-
+        // Insert the new row, returning the primary key value of the new row
+        db.insert(TABLE_NAME, null, values);
         try {
             JSONObject jsonObject = new JSONObject(mnsj);
-            int nuevo = jsonObject.getInt("contador");
-            String norecived = "";
+            Double nuevo = jsonObject.getDouble("value");
+            String norecived = "\n";
+            lastvalue += 1.f;
 
-            while(contador < (nuevo-1)){
-                norecived = contador +" "+String.valueOf(currentDateandTime)+"\n"+ norecived;
-                contador ++;
+            while(lastvalue < nuevo){
+                norecived = norecived+"\n"+String.format ("%.1f",lastvalue-0.1f) +" "+String.valueOf(currentDateandTime);
+                lastvalue +=1.f;
             }
 
             norecibidos.setText(norecibidos.getText()+norecived);
 
-            contador = jsonObject.getInt("contador");
         } catch (JSONException e) {
             e.printStackTrace();
         }
