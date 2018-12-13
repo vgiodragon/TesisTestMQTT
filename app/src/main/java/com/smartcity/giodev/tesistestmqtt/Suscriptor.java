@@ -38,6 +38,8 @@ public class Suscriptor{
     String TABLE_NAME;
     TextView norecibidos;
     static double lastvalue;
+
+    final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
     //static String lastvalue;
 
     public Suscriptor(Context ctx, String ip,String TABLE_NAME,
@@ -55,16 +57,6 @@ public class Suscriptor{
         mqttAndroidClient
                 = new MqttAndroidClient(ctx,  "tcp://"+
                 ip+":1883", "GioMovil"+random);
-
-        /*TrueTimeRx.build()
-                .initializeRx("time.google.com")
-                .subscribeOn(Schedulers.io())
-                .subscribe(date -> {
-                    Log.d(TAG, "output_3 TrueTime was initialized and we have a time: " + date);
-                }, throwable -> {
-                    throwable.printStackTrace();
-                });
-                */
     }
 
     public void restart(){
@@ -91,6 +83,7 @@ public class Suscriptor{
 
                 @Override
                 public void messageArrived(String topic, MqttMessage message) throws Exception {
+                    mqttAndroidClient.publish(Utils.getTopicMqttBACK(), message);
                     Log.d(TAG, "Llego del topic " + topic + ": " + new String(message.getPayload()));
                     Date date = new Date(System.currentTimeMillis());
                     Insert(TABLE_NAME, new String(message.getPayload()), date);

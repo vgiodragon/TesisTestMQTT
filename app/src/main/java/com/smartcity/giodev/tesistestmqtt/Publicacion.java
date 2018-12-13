@@ -31,12 +31,12 @@ public class Publicacion {
 
     @Override
     public String toString() {
-        return  fecha_llegada + ", " + hora_llegada + ", " + fecha_llegada_ntp + ", " + hora_llegada_ntp
-                + ", " +hora_envio +", "+ fecha_envio +", "+ value+"\n";
+        return  fecha_llegada + "," + hora_llegada + "," + fecha_llegada_ntp + "," + hora_llegada_ntp
+                + "," +hora_envio +","+ fecha_envio +","+ value+"\n";
     }
 
     public String toStringsinNTP() {
-        return fecha_llegada + ", " + hora_llegada + ", "
-                + hora_envio +", "+ fecha_envio +", "+ value+"\n";
+        return fecha_llegada +"," + hora_llegada + ","
+                + hora_envio +","+ fecha_envio +","+ value+"\n";
     }
 }

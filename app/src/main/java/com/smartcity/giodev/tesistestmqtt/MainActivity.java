@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startService(View view){
+        //Utils.SendCurrentHour(getBaseContext());
         if (subcriptor == null)
         subcriptor = new Suscriptor(getApplicationContext(), Utils.getIp(), Utils.getTableName()
                 //,new MqttDefaultFilePersistence(getDir("mqtt", MODE_PRIVATE).getAbsolutePath())
@@ -78,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
             //out.write(string.getBytes());
             ArrayList<Publicacion> publicacions = Read(Utils.getTableName());
             //String titlesCSV = "fecha_llegada, hora_llegada, fecha_llegada_ntp, hora_llegada_ntp, fecha_envio, hora_envio, value\n";
-            String titlesCSV = "fecha_llegada, hora_llegada, fecha_envio, hora_envio, value\n";
+            String titlesCSV = "fecha_llegada,hora_llegada,fecha_envio,hora_envio,value\n";
             out.write(titlesCSV.getBytes());
             for (Publicacion publicacion : publicacions)
                 out.write(publicacion.toStringsinNTP().getBytes());
@@ -145,8 +146,9 @@ public class MainActivity extends AppCompatActivity {
             String horat_NTP[] = horaNTP.split(" ");
             try {
                 JSONObject jsonObject = new JSONObject(mjson);
+                String hora_ENVIO[] = jsonObject.getString("timestamp").split(" ");
                 Publicacion mpublicacion =new Publicacion(hora_Llegada[0],hora_Llegada[1],
-                        horat_NTP[0],horat_NTP[1],jsonObject.getDouble("value"));
+                        hora_ENVIO[0],hora_ENVIO[1],jsonObject.getDouble("value"));
                 elemtns.add(mpublicacion);
 
 
