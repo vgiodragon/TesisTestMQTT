@@ -1,3 +1,5 @@
+
+
 package com.smartcity.giodev.tesistestmqtt;
 
 import android.Manifest;
@@ -56,9 +58,9 @@ public class MainActivity extends AppCompatActivity {
     public void startService(View view){
         //Utils.SendCurrentHour(getBaseContext());
         if (subcriptor == null)
-        subcriptor = new Suscriptor(getApplicationContext(), Utils.getIp(), Utils.getTableName()
-                //,new MqttDefaultFilePersistence(getDir("mqtt", MODE_PRIVATE).getAbsolutePath())
-                ,norecibido);
+            subcriptor = new Suscriptor(getApplicationContext(), Utils.getIp(), Utils.getTableName()
+                    //,new MqttDefaultFilePersistence(getDir("mqtt", MODE_PRIVATE).getAbsolutePath())
+                    ,norecibido);
         subcriptor.creoClienteMQTT();
     }
 
